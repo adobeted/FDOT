@@ -1,0 +1,10 @@
+ BUILD 33
+ 	- Added instance support f.new.Load! new Load();
+ 	- Added simplified event types FAIL,PROGRESS,SUCCESS,OPEN,CLOSE,INIT (Thanks Ben Garney!)
+ 	- Added f.event.LoadEvent for typed events
+ 	- Added XMLDocument support in f.Load.xmldoc
+ 	- Added loadResult constants to Load
+ 	- Moved loadError constants to LoadError
+ 	- Renamed f.Load.xml to f.Load.e4x
+ 	- Added FDOT_Tests to run all tests
+ 	- Added f.tests to hold all test examples for instance and static use

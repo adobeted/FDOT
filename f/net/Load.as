@@ -46,8 +46,11 @@
 //		//load stream
 // 		Load.stream( 'http://onflex.org/f/Load/test.png' );
 //
-//		//load xml
-// 		Load.xml( 'http://onflex.org/f/Load/test.xml' );
+//		//load e4x
+// 		Load.e4x( 'http://onflex.org/f/Load/test.xml' );
+//	
+//		//load xmldoc
+// 		Load.xmldoc( 'http://onflex.org/f/Load/test.xml' );
 //	
 //		//load json
 // 		Load.json( 'http://onflex.org/f/Load/test.json' );
@@ -59,16 +62,19 @@
 // 		Load.querystring( 'http://onflex.org/f/Load/test.xml' );
 //
 //
+//
 // Contributors: Ted Patrick
 //
 
 package f.net
 {
 	import f.data.format.json.*;
+	import f.events.LoadEvent;
 	
 	import flash.display.Loader;
 	import flash.display.LoaderInfo;
 	import flash.events.Event;
+	import flash.events.EventDispatcher;
 	import flash.events.HTTPStatusEvent;
 	import flash.events.IOErrorEvent;
 	import flash.events.ProgressEvent;
@@ -81,47 +87,111 @@ package f.net
 	import flash.utils.ByteArray;
 	import flash.utils.Dictionary;
 	import flash.utils.getTimer;
+	import flash.xml.XMLDocument;
 	
-	public class Load
+	public class Load extends EventDispatcher
 	{
 		
-		public static const OPEN:String = "load.open";
-		public static const CLOSE:String = "load.close";
-		public static const PROGRESS:String = "load.progress";
-		public static const COMPLETE:String = "load.complete";
-		public static const HTTPSTATUS:String = "load.httpstatus";
-		public static const IOERROR:String = "load.ioerror";
-		public static const SECURITYERROR:String = "load.securityerror";
-		public static const INIT:String = "load.init";
+		public static const BINARY:String = "f.net.Load.BINARY";
+		public static const E4X:String = "f.net.Load.E4X";		
+		public static const JSON:String = "f.net.Load.JSON";
+		public static const IMAGE:String = "f.net.Load.IMAGE";
+		public static const STREAM:String = "f.net.Load.STREAM";
+		public static const SWF:String = "f.net.Load.SWF";
+		public static const QUERYSTRING:String = "f.net.Load.QUERYSTRING";
+		public static const TEXT:String = "f.net.Load.TEXT";
+		public static const XMLDOC:String = "f.net.Load.XMLDOC";
 		private static var requests:Dictionary;
 		
+		public var url:String = null;
+		public var parameters:Object = null;
+		public var resultFormat:String = Load.TEXT;
+		
+		public function load():void
+		{
+			if( url == null) return;
+			switch ( this.resultFormat ){
+				
+				case Load.BINARY:
+					Load.binary( this.url , this.eventCallback , this.parameters );
+					break;
+					
+				case Load.E4X:
+					Load.e4x( this.url , this.eventCallback , this.parameters );
+					break;
+					
+				case Load.IMAGE:
+					Load.image( this.url , this.eventCallback , this.parameters );
+					break;
+					
+				case Load.JSON:
+					Load.json( this.url , this.eventCallback , this.parameters );
+					break;
+					
+				case Load.QUERYSTRING:
+					Load.querystring( this.url , this.eventCallback , this.parameters );
+					break;
+					
+				case Load.STREAM:
+					Load.stream( this.url , this.eventCallback , this.parameters );
+					break;
+					
+				case Load.SWF:
+					Load.swf( this.url , this.eventCallback , this.parameters );
+					break;
+					
+				case Load.TEXT:
+					Load.text( this.url , this.eventCallback , this.parameters );
+					break;
+					
+				case Load.XMLDOC:
+					Load.xmldoc( this.url , this.eventCallback , this.parameters );
+					break;
+					
+				case Load.STREAM:
+					Load.stream( this.url , this.eventCallback , this.parameters );
+					break;
+					
+				default:
+					trace( getTimer() + ' default case fired in error' );
+					break;
+			}
+			
+		}
+		
+		public function Load( url:String=null , parameters:Object=null  ):void
+		{
+			super();
+			if( url != null) this.url = url;
+			if( parameters != null) this.parameters = parameters;
+		}
+		
+		private function eventCallback( event:LoadEvent ):void
+		{
+			this.dispatchEvent( event );
+		}
+		
 		//sample event handler
-		public static function sampleSwitchEventHandler( event:Object ):void
+		public static function sampleSwitchEventHandler( event:LoadEvent ):void
 		{
 			switch ( event.type ){
-				case Load.CLOSE:
-					trace( getTimer() + ' ' + Load.CLOSE );
+				case LoadEvent.CLOSE:
+					trace( getTimer() + ' ' + LoadEvent.CLOSE );
 					break;
-				case Load.OPEN:
-					trace( getTimer() + ' ' + Load.OPEN );
+				case LoadEvent.OPEN:
+					trace( getTimer() + ' ' + LoadEvent.OPEN );
 					break;
-				case Load.COMPLETE:
-					trace( getTimer() + ' ' + Load.COMPLETE );
+				case LoadEvent.SUCCESS:
+					trace( getTimer() + ' ' + LoadEvent.SUCCESS );
 					break;
-				case Load.HTTPSTATUS:
-					trace( getTimer() + ' ' + Load.HTTPSTATUS );
+				case LoadEvent.INIT:
+					trace( getTimer() + ' ' + LoadEvent.INIT );
 					break;
-				case Load.INIT:
-					trace( getTimer() + ' ' + Load.INIT );
+				case LoadEvent.FAIL:
+					trace( getTimer() + ' ' + LoadEvent.FAIL );
 					break;
-				case Load.IOERROR:
-					trace( getTimer() + ' ' + Load.IOERROR );
-					break;
-				case Load.PROGRESS:
-					trace( getTimer() + ' ' + Load.PROGRESS + ' ' + event.bytesLoaded );
-					break;
-				case Load.SECURITYERROR:
-					trace( getTimer() + ' ' + Load.SECURITYERROR );
+				case LoadEvent.PROGRESS:
+					trace( getTimer() + ' ' + LoadEvent.PROGRESS + ' ' + event.bytesLoaded );
 					break;
 				default:
 					trace( getTimer() + ' default case fired in error' );
@@ -130,85 +200,86 @@ package f.net
 		}
 		
 		//sample event handler
-		public static function sampleEventHandler( event:Object ):void
+		public static function sampleEventHandler( event:LoadEvent ):void
 		{
-			if( event.type == Load.CLOSE ){
-				trace( getTimer() + ' ' + Load.CLOSE );
-			}else if( event.type == Load.OPEN ){
-				trace( getTimer() + ' ' + Load.OPEN );
-			}else if( event.type == Load.COMPLETE ){
-				trace( getTimer() + ' ' + Load.COMPLETE );
-			}else if( event.type == Load.HTTPSTATUS ){
-				trace( getTimer() + ' ' + Load.HTTPSTATUS );
-			}else if( event.type == Load.INIT ){
-				trace( getTimer() + ' ' + Load.INIT );
-			}else if( event.type == Load.IOERROR ){
-				trace( getTimer() + ' ' + Load.IOERROR );
-			}else if( event.type == Load.PROGRESS ){
-				trace( getTimer() + ' ' + Load.PROGRESS + ' ' + event.bytesLoaded );
-			}else if( event.type == Load.SECURITYERROR ){
-				trace( getTimer() + ' ' + Load.SECURITYERROR );
+			if( event.type == LoadEvent.CLOSE ){
+				trace( getTimer() + ' ' + LoadEvent.CLOSE );
+			}else if( event.type == LoadEvent.OPEN ){
+				trace( getTimer() + ' ' + LoadEvent.OPEN );
+			}else if( event.type == LoadEvent.SUCCESS ){
+				trace( getTimer() + ' ' + LoadEvent.SUCCESS );
+			}else if( event.type == LoadEvent.INIT ){
+				trace( getTimer() + ' ' + LoadEvent.INIT );
+			}else if( event.type == LoadEvent.FAIL ){
+				trace( getTimer() + ' ' + LoadEvent.FAIL );
+			}else if( event.type == LoadEvent.PROGRESS ){
+				trace( getTimer() + ' ' + LoadEvent.PROGRESS + ' ' + event.bytesLoaded );
 			}else{
 				trace( getTimer() + ' default case fired in error' );			
 			}
 		}
 		
-		public static function swf( url:String , handler:Function , parameters:Object=null ):void
+		public static function swf( url:String , callback:Function , parameters:Object=null ):void
 		{
 			if( parameters == null ) parameters = {};
-			parameters.resultFormat = "swf";
-			Load.loadMovie( url , handler , parameters );		
+			parameters.resultFormat = Load.SWF;
+			Load.loadMovie( url , callback , parameters );		
 		}
 		
-		public static function image( url:String , handler:Function , parameters:Object=null  ):void
+		public static function image( url:String , callback:Function , parameters:Object=null  ):void
 		{
 			if( parameters == null ) parameters = {};
-			parameters.resultFormat = "image";
-			Load.loadMovie( url , handler , parameters );		
+			parameters.resultFormat = Load.IMAGE;
+			Load.loadMovie( url , callback , parameters );		
 		}
 		
-		public static function binary( url:String , handler:Function , parameters:Object=null ):void
+		public static function binary( url:String , callback:Function , parameters:Object=null ):void
 		{
 			if( parameters == null ) parameters = {};
-			parameters.resultFormat = "binary";
-			Load.loadStream( url , handler , parameters );		
+			parameters.resultFormat = Load.BINARY;
+			Load.loadStream( url , callback , parameters );		
 		}
 		
-		public static function stream( url:String , handler:Function , parameters:Object=null ):void
+		public static function stream( url:String , callback:Function , parameters:Object=null ):void
 		{
 			if( parameters == null ) parameters = {};
-			parameters.resultFormat = "stream";
-			Load.loadStream( url , handler , parameters );		
+			parameters.resultFormat = Load.STREAM;
+			Load.loadStream( url , callback , parameters );		
 		}
 		
-		public static function querystring( url:String , handler:Function , parameters:Object=null ):void
+		public static function querystring( url:String , callback:Function , parameters:Object=null ):void
 		{
 			if( parameters == null ) parameters = {};
-			parameters.resultFormat = "querystring";
-			Load.loadData( url , handler , parameters );		
+			parameters.resultFormat = Load.QUERYSTRING;
+			Load.loadData( url , callback , parameters );		
 		}
 		
-		public static function text( url:String , handler:Function , parameters:Object=null  ):void
+		public static function text( url:String , callback:Function , parameters:Object=null  ):void
 		{
 			if( parameters == null ) parameters = {};
-			parameters.resultFormat = "text";
-			return Load.loadData( url , handler , parameters );		
+			parameters.resultFormat = Load.TEXT;
+			return Load.loadData( url , callback , parameters );		
 		}
 		
-		public static function json( url:String , handler:Function , parameters:Object=null ):void
+		public static function json( url:String , callback:Function , parameters:Object=null ):void
 		{
 			if( parameters == null ) parameters = {};
-			parameters.resultFormat = "json";
-			Load.loadData( url , handler , parameters );		
+			parameters.resultFormat = Load.JSON;
+			Load.loadData( url , callback , parameters );		
 		}
 		
-		public static function xml( url:String , handler:Function , parameters:Object=null ):void
+		public static function e4x( url:String , callback:Function , parameters:Object=null ):void
 		{
-			if( parameters == null ){
-				parameters = {};
-			} 
-			parameters.resultFormat = "xml";
-			Load.loadData( url , handler , parameters );		
+			if( parameters == null ) parameters = {};
+			parameters.resultFormat = Load.E4X;
+			Load.loadData( url , callback , parameters );		
+		}
+		
+		public static function xmldoc( url:String , callback:Function , parameters:Object=null ):void
+		{
+			if( parameters == null ) parameters = {};
+			parameters.resultFormat = Load.XMLDOC;
+			Load.loadData( url , callback , parameters );		
 		}
 		
 		
@@ -218,7 +289,7 @@ package f.net
 		//---------------------------
 		
 		//handles loading ASCII data
-		private static function loadData( url:String , handler:Function , parameters:Object=null ):void
+		private static function loadData( url:String , callback:Function , parameters:Object=null ):void
 		{
 			Load.init();
 			var loader:URLLoader = new URLLoader();
@@ -232,7 +303,7 @@ package f.net
             loader.addEventListener( IOErrorEvent.IO_ERROR , Load.loadDataIoError );
             
             //store request
-            Load.requests[ loader ] = prepareRequest( url, handler, parameters );
+            Load.requests[ loader ] = prepareRequest( url, callback, parameters );
             
             try {
                 loader.load( Load.requests[ loader ].request );
@@ -245,26 +316,32 @@ package f.net
         private static function loadDataComplete(event:Event):void {
             var loader:URLLoader = URLLoader( event.target );
             var resultFormat:String = Load.requests[ loader ].resultFormat;
-            var message:Object;
-            if( resultFormat == 'xml'){
-            	//trace( 'resultFormat == xml');
-            	message = { type:Load.COMPLETE , data: new XML( loader.data ) , loader:loader }; 
-            }else if( resultFormat == 'json'){
-            	//trace( 'resultFormat == json');
-            	message = { type:Load.COMPLETE , data:JSON.decode( loader.data ) , loader:loader }; 
-            }else if( resultFormat == 'text'){
+            var message:LoadEvent = new LoadEvent( LoadEvent.SUCCESS );
+            message.loader = loader; 
+            if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
+            if( resultFormat == Load.E4X){
+            	//trace( 'resultFormat == erx');
+            	message.data = new XML( loader.data );
+            }else if( resultFormat == Load.XMLDOC ){
+            	//trace( 'resultFormat == xmldoc'); 
+            	message.data = new XMLDocument( loader.data );
+            }else if( resultFormat == Load.JSON ){
+            	//trace( 'resultFormat == json'); 
+            	message.data = f.data.format.json.JSON.decode( loader.data );
+            }else if( resultFormat == Load.TEXT ){
             	//trace( 'resultFormat == text');
-            	message = { type:Load.COMPLETE , data:loader.data , loader:loader }; 
-            }else if( resultFormat == 'querystring'){
+            	message.data = loader.data;
+            }else if( resultFormat == Load.QUERYSTRING ){
             	//trace( 'resultFormat == querystring');
-            	message = { type:Load.COMPLETE , data: new URLVariables( loader.data ) , loader:loader }; 
+            	message.data = new URLVariables( loader.data );
             }else{
             	//default
-            	message = { type:Load.COMPLETE , data:loader.data , loader:loader };
+            	message.data = loader.data;
             }
             Load.processMessage( loader , message );
 			
 			//clean up
+			delete Load.requests[ loader ].callback;
 			delete Load.requests[ loader ];
 			
             loader.removeEventListener( Event.COMPLETE , loadDataComplete );
@@ -277,37 +354,43 @@ package f.net
 
         private static function loadDataOpen( event:Event ):void {
             var loader:URLLoader = URLLoader( event.target );
-            var message:Object = { type:Load.OPEN , loader:loader };
+            var message:LoadEvent = new LoadEvent( LoadEvent.OPEN );
+            message.loader = loader;
 			Load.processMessage( loader , message );
         }
 
         private static function loadDataProgress( event:ProgressEvent ):void {
             var loader:URLLoader = URLLoader( event.target );
-            var message:Object = {}
-            message.type = Load.PROGRESS
-            message.percent = Number( event.bytesLoaded / event.bytesTotal * 100).toPrecision( 4 );
-            if( event.bytesLoaded ) message.bytesLoaded = event.bytesLoaded;
-            if( event.bytesTotal ) message.bytesTotal = event.bytesTotal;
+            var message:LoadEvent = new LoadEvent( LoadEvent.PROGRESS );
             message.loader = loader;
-			Load.processMessage( loader , message );
+			if( event.bytesLoaded ) message.bytesLoaded = event.bytesLoaded;
+            if( event.bytesTotal ) message.bytesTotal = event.bytesTotal;
+			if( event.bytesTotal && event.bytesLoaded ) message.percent = Number( Number( event.bytesLoaded / event.bytesTotal * 100 ).toPrecision( 4 ) );
+            Load.processMessage( loader , message );
 		 }
 
         private static function loadDataSecurityError(event:SecurityErrorEvent):void {
             var loader:URLLoader = URLLoader( event.target );
-            var message:Object = { type:Load.SECURITYERROR , loader:loader };
+            var message:LoadEvent = new LoadEvent( LoadEvent.FAIL );
+            message.loader = loader;
+			message.error = event.text;
+            if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status;
 			Load.processMessage( loader , message );
         }
 
         private static function loadDataHttpStatus(event:HTTPStatusEvent):void {
             var loader:URLLoader = URLLoader( event.target );
-            var message:Object = { type:Load.HTTPSTATUS , loader:loader };
-			Load.processMessage( loader , message );
+            //write status into requestobj
+            Load.requests[ loader ].status = event.status;
         }
 
         private static function loadDataIoError(event:IOErrorEvent):void {
             var loader:URLLoader = URLLoader( event.target );
-            var message:Object = { type:Load.IOERROR , loader:loader };
-			Load.processMessage( loader , message );
+            var message:LoadEvent = new LoadEvent( LoadEvent.FAIL );
+            message.error = event.text;
+			message.loader = loader;
+            if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status;
+            Load.processMessage( loader , message );
         }
 		
 		
@@ -316,7 +399,7 @@ package f.net
 		//---------------------------
 		
 		//handles loading ASCII data
-		private static function loadStream( url:String , handler:Function , parameters:Object=null ):void
+		private static function loadStream( url:String , callback:Function , parameters:Object=null ):void
 		{
 			Load.init();
 			var loader:URLStream = new URLStream();
@@ -330,7 +413,7 @@ package f.net
             loader.addEventListener( IOErrorEvent.IO_ERROR , Load.loadStreamIoError );
             
             //store request
-            Load.requests[ loader ] = prepareRequest( url, handler, parameters );
+            Load.requests[ loader ] = prepareRequest( url, callback, parameters );
             
             try {
                 loader.load( Load.requests[ loader ].request );
@@ -343,10 +426,14 @@ package f.net
             var loader:URLStream = URLStream( event.target );
             var bytesOut:ByteArray = new ByteArray();
             loader.readBytes( bytesOut );
- 			var message:Object = { type:Load.COMPLETE , data:bytesOut , loader:loader };
+ 			var message:LoadEvent = new LoadEvent( LoadEvent.SUCCESS );
+            message.loader = loader;
+            if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
+			message.data = bytesOut;
 			Load.processMessage( loader , message );
 			
 			//clean up
+			delete Load.requests[ loader ].callback;
 			delete Load.requests[ loader ];
 			
             loader.removeEventListener( Event.COMPLETE , loadDataComplete );
@@ -359,37 +446,45 @@ package f.net
 
         private static function loadStreamOpen( event:Event ):void {
             var loader:URLStream = URLStream( event.target );
-            var message:Object = { type:Load.OPEN , loader:loader };
+            var message:LoadEvent = new LoadEvent( LoadEvent.OPEN );
+            message.loader = loader;
 			Load.processMessage( loader , message );
         }
 
         private static function loadStreamProgress( event:ProgressEvent ):void {
             var loader:URLStream = URLStream( event.target );
-             var message:Object = {}
-            message.type = Load.PROGRESS
-            message.percent = Number( event.bytesLoaded / event.bytesTotal * 100 ).toPrecision( 4 );
+            var message:LoadEvent = new LoadEvent( LoadEvent.PROGRESS );
+            message.loader = loader;
+            message.bytesAvailable = loader.bytesAvailable;
             if( event.bytesLoaded ) message.bytesLoaded = event.bytesLoaded;
             if( event.bytesTotal ) message.bytesTotal = event.bytesTotal;
-            message.stream = loader;
-			Load.processMessage( loader , message );
+			if( event.bytesTotal && event.bytesLoaded ) message.percent = Number( Number( event.bytesLoaded / event.bytesTotal * 100 ).toPrecision( 4 ) );
+            Load.processMessage( loader , message );
 		 }
 
         private static function loadStreamSecurityError( event:SecurityErrorEvent ):void {
             var loader:URLStream = URLStream( event.target );
-            var message:Object = { type:Load.SECURITYERROR , loader:loader };
+            var message:LoadEvent = new LoadEvent( LoadEvent.FAIL );
+            message.error = event.text;
+            if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
+			message.loader = loader;
+            message.error = event.text;
 			Load.processMessage( loader , message );
         }
 
         private static function loadStreamHttpStatus( event:HTTPStatusEvent ):void {
-            var loader:URLStream = URLStream( event.target );
-            var message:Object = { type:Load.HTTPSTATUS , loader:loader };
-			Load.processMessage( loader , message );
+           var loader:URLStream = URLStream( event.target );
+            //write status into requestobj
+            Load.requests[ loader ].status = event.status;
         }
 
         private static function loadStreamIoError( event:IOErrorEvent ):void {
             var loader:URLStream = URLStream( event.target );
-            var message:Object = { type:Load.IOERROR , loader:loader };
-			Load.processMessage( loader , message );
+            var message:LoadEvent = new LoadEvent( LoadEvent.FAIL );
+            message.error = event.text;
+            if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
+			message.loader = loader;
+           	Load.processMessage( loader , message );
         }
 		
 		
@@ -399,7 +494,7 @@ package f.net
 		//---------------------------
 		
 		//handles loading DisplayObjects
-		private static function loadMovie( url:String , handler:Function , parameters:Object=null ):void
+		private static function loadMovie( url:String , callback:Function , parameters:Object=null ):void
 		{
 			Load.init();	
 			
@@ -415,7 +510,7 @@ package f.net
             loader.contentLoaderInfo.addEventListener( Event.INIT , Load.loadMovieInit );
             
            	//store request
-            parameters = Load.requests[ loader.contentLoaderInfo ] = prepareRequest( url, handler, parameters );
+            parameters = Load.requests[ loader.contentLoaderInfo ] = prepareRequest( url, callback, parameters );
             parameters.contentLoaderInfo = loader.contentLoaderInfo;
             parameters.loader = loader;
             
@@ -428,64 +523,70 @@ package f.net
 		
 		//MOVIE EVENTS
         private static function loadMovieComplete( event:Event ):void {
-            var contentLoaderInfo:LoaderInfo = LoaderInfo( event.target );
- 			var message:Object = { type:Load.COMPLETE , loaderInfo:contentLoaderInfo , data:contentLoaderInfo.loader };
-			Load.processMessage( contentLoaderInfo , message );
+            var loaderInfo:LoaderInfo = LoaderInfo( event.target );
+            var message:LoadEvent = new LoadEvent( LoadEvent.SUCCESS );
+			message.loader = loaderInfo.loader;
+			message.data = loaderInfo.loader as Loader;
+            if( Load.requests[ loaderInfo ].status ) message.status = Load.requests[ loaderInfo ].status
+			Load.processMessage( loaderInfo , message );
 			
 			//clean up
-			delete Load.requests[ contentLoaderInfo ];
+			delete Load.requests[ loaderInfo ].callback;
+			delete Load.requests[ loaderInfo ];
 			
-            contentLoaderInfo.removeEventListener( Event.COMPLETE , Load.loadMovieComplete );
-            contentLoaderInfo.removeEventListener( Event.OPEN , Load.loadMovieOpen );
-            contentLoaderInfo.removeEventListener( Event.INIT , Load.loadMovieInit );
-            contentLoaderInfo.removeEventListener( ProgressEvent.PROGRESS , Load.loadMovieProgress );
-            contentLoaderInfo.removeEventListener( SecurityErrorEvent.SECURITY_ERROR , Load.loadMovieSecurityError );
-            contentLoaderInfo.removeEventListener( HTTPStatusEvent.HTTP_STATUS , Load.loadMovieHttpStatus );
-            contentLoaderInfo.removeEventListener( IOErrorEvent.IO_ERROR , Load.loadMovieIoError );
+            loaderInfo.removeEventListener( Event.COMPLETE , Load.loadMovieComplete );
+            loaderInfo.removeEventListener( Event.OPEN , Load.loadMovieOpen );
+            loaderInfo.removeEventListener( Event.INIT , Load.loadMovieInit );
+            loaderInfo.removeEventListener( ProgressEvent.PROGRESS , Load.loadMovieProgress );
+            loaderInfo.removeEventListener( SecurityErrorEvent.SECURITY_ERROR , Load.loadMovieSecurityError );
+            loaderInfo.removeEventListener( HTTPStatusEvent.HTTP_STATUS , Load.loadMovieHttpStatus );
+            loaderInfo.removeEventListener( IOErrorEvent.IO_ERROR , Load.loadMovieIoError );
 		}
 		
 		private static function loadMovieOpen( event:Event ):void {
             var loader:LoaderInfo = LoaderInfo( event.target );
-            var message:Object = { type:Load.OPEN , loaderInfo:loader };
-			Load.processMessage( loader , message );
+            var message:LoadEvent = new LoadEvent( LoadEvent.OPEN );
+			message.loader = loader;
+            Load.processMessage( loader , message );
         }
         
         private static function loadMovieInit(event:Event):void {
             var loader:LoaderInfo = LoaderInfo( event.target );
-            var message:Object = { type:Load.INIT , loaderInfo:loader };
+            var message:LoadEvent = new LoadEvent( LoadEvent.INIT );
+			message.loader = loader;
 			Load.processMessage( loader , message );
         }
 
         private static function loadMovieProgress( event:ProgressEvent ):void {
             var loader:LoaderInfo = LoaderInfo( event.target );
-            var message:Object;
-            //not sure if 0 is correcto
-            if( loader.bytesTotal != 0 ){
-	            message = { type:Load.PROGRESS , 
-	            			percent:Number( loader.bytesLoaded / loader.bytesTotal * 100 ).toPrecision(4) , 
-	            			bytesLoaded:loader.bytesLoaded, bytesTotal:loader.bytesTotal , 
-	            			loaderInfo:loader };
-            }else{
-            	message = { type:Load.PROGRESS , bytesLoaded:loader.bytesLoaded , loaderInfo:loader };
-            }
+            var message:LoadEvent = new LoadEvent( LoadEvent.PROGRESS );
+			message.loader = loader;
+			if( event.bytesLoaded ) message.bytesLoaded = event.bytesLoaded;
+            if( event.bytesTotal ) message.bytesTotal = event.bytesTotal;
+			if( event.bytesTotal && event.bytesLoaded ) message.percent = Number( Number( event.bytesLoaded / event.bytesTotal * 100 ).toPrecision( 4 ) );
             Load.processMessage( loader , message );
 		}
 
         private static function loadMovieSecurityError( event:SecurityErrorEvent ):void {
             var  loader:LoaderInfo = LoaderInfo( event.target );
-            var message:Object = { type:Load.SECURITYERROR , loaderInfo:loader };
-            Load.processMessage( loader , message );
+            var message:LoadEvent = new LoadEvent( LoadEvent.FAIL );
+            message.error = event.text;
+			message.loader = loader;
+			if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
+			Load.processMessage( loader , message );
         }
 
         private static function loadMovieHttpStatus( event:HTTPStatusEvent ):void {
             var loader:LoaderInfo = LoaderInfo( event.target );
-            var message:Object = { type:Load.HTTPSTATUS , loaderInfo:loader };
-			Load.processMessage( loader , message );
+            Load.requests[ loader ].status = event.status;
         }
 
         private static function loadMovieIoError( event:IOErrorEvent ):void {
             var loader:LoaderInfo = LoaderInfo( event.target );
-            var message:Object = { type:Load.IOERROR , loaderInfo:loader };
+            var message:LoadEvent = new LoadEvent( LoadEvent.FAIL );
+            message.error = event.text;
+			message.loader = loader;
+			if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
 			Load.processMessage( loader , message );
         }
         
@@ -505,23 +606,21 @@ package f.net
 		//call methods with messages
 		private static function processMessage( loader:Object , message:Object ):void
 		{
-			var handler:Function = Load.requests[ loader ].handler as Function;
-            if( handler != null ){
-				handler( message );
-			}else{
-				Message.send( message )
+			var callback:Function = Load.requests[ loader ].callback as Function;
+            if( callback != null ){
+				callback( message );
 			}
 		}
 		
 		//prepare request object and params across all types
-		private static function prepareRequest( url:String , handler:Object , parameters:Object=null):Object
+		private static function prepareRequest( url:String , callback:Object , parameters:Object=null):Object
 		{
 			//filter input
             if( parameters == null ) parameters = {};
             if( !parameters.name ){ parameters.name = ""};
             if( !parameters.method ){ parameters.method = 'get' };
             parameters.url = url;
-            parameters.handler = handler;
+            parameters.callback = callback;
             parameters.method = String( parameters.method ).toLowerCase();
             
             //create the request
@@ -550,11 +649,8 @@ package f.net
 	            }
 	            request.data = variables;
             }
-            
             parameters.request = request;
             return parameters;
-            
 		}
-		
 	}
 }
