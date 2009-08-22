@@ -1,5 +1,5 @@
  BUILD 33
- 	- Added instance support f.new.Load! new Load();
+ 	- Added instance support f.net.Load! new Load();
  	- Added simplified event types FAIL,PROGRESS,SUCCESS,OPEN,CLOSE,INIT (Thanks Ben Garney!)
  	- Added f.event.LoadEvent for typed events
  	- Added XMLDocument support in f.Load.xmldoc
