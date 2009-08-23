@@ -111,6 +111,11 @@ package f.net
 		public var parameters:Object = null;
 		public var resultFormat:String = Load.TEXT;
 		
+		public function unload():void
+		{
+			this.parameters.loader.unload();
+		}
+		
 		public function load():void
 		{
 			if( url == null) return;
@@ -307,105 +312,125 @@ package f.net
 		private static function loadData( url:String , callback:Function , parameters:Object=null ):void
 		{
 			Load.init();
-			var loader:URLLoader = new URLLoader();
+			var urlLoader:URLLoader = new URLLoader();
             
             //configure listeners
-            loader.addEventListener( Event.COMPLETE , Load.loadDataComplete );
-            loader.addEventListener( Event.OPEN , Load.loadDataOpen );
-            loader.addEventListener( ProgressEvent.PROGRESS , Load.loadDataProgress );
-            loader.addEventListener( SecurityErrorEvent.SECURITY_ERROR , Load.loadDataSecurityError );
-            loader.addEventListener( HTTPStatusEvent.HTTP_STATUS , Load.loadDataHttpStatus );
-            loader.addEventListener( IOErrorEvent.IO_ERROR , Load.loadDataIoError );
+            urlLoader.addEventListener( Event.COMPLETE , Load.loadDataComplete );
+            urlLoader.addEventListener( Event.OPEN , Load.loadDataOpen );
+            urlLoader.addEventListener( ProgressEvent.PROGRESS , Load.loadDataProgress );
+            urlLoader.addEventListener( SecurityErrorEvent.SECURITY_ERROR , Load.loadDataSecurityError );
+            urlLoader.addEventListener( HTTPStatusEvent.HTTP_STATUS , Load.loadDataHttpStatus );
+            urlLoader.addEventListener( IOErrorEvent.IO_ERROR , Load.loadDataIoError );
             
             //store request
-            Load.requests[ loader ] = prepareRequest( url, callback, parameters );
+            Load.requests[ urlLoader ] = prepareRequest( url, callback, parameters );
+            
+            //store loader
+            Load.requests[ urlLoader ].loader = urlLoader;
             
             try {
-                loader.load( Load.requests[ loader ].request );
+                urlLoader.load( Load.requests[ urlLoader ].request );
             } catch ( error:Error ) {
                 trace("Unable to load requested document.");
             }
             
 		}
-
-        private static function loadDataComplete(event:Event):void {
-            var loader:URLLoader = URLLoader( event.target );
-            var resultFormat:String = Load.requests[ loader ].resultFormat;
-            var message:LoadEvent = new LoadEvent( LoadEvent.SUCCESS );
-            message.loader = loader; 
-            if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
-            if( resultFormat == Load.E4X){
-            	//trace( 'resultFormat == erx');
-            	message.data = new XML( loader.data );
-            }else if( resultFormat == Load.XMLDOC ){
-            	//trace( 'resultFormat == xmldoc'); 
-            	message.data = new XMLDocument( loader.data );
-            }else if( resultFormat == Load.JSON ){
-            	//trace( 'resultFormat == json'); 
-            	message.data = f.data.format.json.JSON.decode( loader.data );
-            }else if( resultFormat == Load.TEXT ){
-            	//trace( 'resultFormat == text');
-            	message.data = loader.data;
-            }else if( resultFormat == Load.QUERYSTRING ){
-            	//trace( 'resultFormat == querystring');
-            	message.data = new URLVariables( loader.data );
-            }else{
-            	//default
-            	message.data = loader.data;
-            }
-            Load.processMessage( loader , message );
-			
+		
+		private static function loadDataClean( urlLoader:URLLoader ):void
+		{
 			//clean up
-			delete Load.requests[ loader ].callback;
-			delete Load.requests[ loader ];
+			delete Load.requests[ urlLoader ].callback;
+			delete Load.requests[ urlLoader ].loader;
+			delete Load.requests[ urlLoader ];
 			
-            loader.removeEventListener( Event.COMPLETE , loadDataComplete );
-            loader.removeEventListener( Event.OPEN , loadDataOpen );
-            loader.removeEventListener( ProgressEvent.PROGRESS , loadDataProgress );
-            loader.removeEventListener( SecurityErrorEvent.SECURITY_ERROR , loadDataSecurityError );
-            loader.removeEventListener( HTTPStatusEvent.HTTP_STATUS , loadDataHttpStatus );
-            loader.removeEventListener( IOErrorEvent.IO_ERROR , loadDataIoError );
+            urlLoader.removeEventListener( Event.COMPLETE , loadDataComplete );
+            urlLoader.removeEventListener( Event.OPEN , loadDataOpen );
+            urlLoader.removeEventListener( ProgressEvent.PROGRESS , loadDataProgress );
+            urlLoader.removeEventListener( SecurityErrorEvent.SECURITY_ERROR , loadDataSecurityError );
+            urlLoader.removeEventListener( HTTPStatusEvent.HTTP_STATUS , loadDataHttpStatus );
+            urlLoader.removeEventListener( IOErrorEvent.IO_ERROR , loadDataIoError );
 		}
 
+        private static function loadDataComplete(event:Event):void {
+            var urlLoader:URLLoader = URLLoader( event.target );
+            var resultFormat:String = Load.requests[ urlLoader ].resultFormat;
+            var message:LoadEvent = new LoadEvent( LoadEvent.SUCCESS );
+            message.loader = urlLoader; 
+            if( Load.requests[ urlLoader ].status ) message.status = Load.requests[ urlLoader ].status
+            if( resultFormat == Load.E4X){
+            	//trace( 'resultFormat == erx');
+            	message.data = new XML( urlLoader.data );
+            }else if( resultFormat == Load.XMLDOC ){
+            	//trace( 'resultFormat == xmldoc'); 
+            	message.data = new XMLDocument( urlLoader.data );
+            }else if( resultFormat == Load.JSON ){
+            	//trace( 'resultFormat == json'); 
+            	message.data = f.data.format.json.JSON.decode( urlLoader.data );
+            }else if( resultFormat == Load.TEXT ){
+            	//trace( 'resultFormat == text');
+            	message.data = urlLoader.data;
+            }else if( resultFormat == Load.QUERYSTRING ){
+            	//trace( 'resultFormat == querystring');
+            	message.data = new URLVariables( urlLoader.data );
+            }else{
+            	//default
+            	message.data = urlLoader.data;
+            }
+            Load.processMessage( urlLoader , message );
+            
+            //chain complete to close events
+            Load.loadDataClose( event );
+		}
+		
+		private static function loadDataClose( event:Event ):void {
+            var urlLoader:URLLoader = URLLoader( event.target );
+            var message:LoadEvent = new LoadEvent( LoadEvent.CLOSE );
+            message.loader = urlLoader;
+			Load.processMessage( urlLoader , message );
+			Load.loadDataClean( urlLoader );
+        }
+        
         private static function loadDataOpen( event:Event ):void {
-            var loader:URLLoader = URLLoader( event.target );
+            var urlLoader:URLLoader = URLLoader( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.OPEN );
-            message.loader = loader;
-			Load.processMessage( loader , message );
+            message.loader = urlLoader;
+			Load.processMessage( urlLoader , message );
         }
 
         private static function loadDataProgress( event:ProgressEvent ):void {
-            var loader:URLLoader = URLLoader( event.target );
+            var urlLoader:URLLoader = URLLoader( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.PROGRESS );
-            message.loader = loader;
+            message.loader = urlLoader;
 			if( event.bytesLoaded ) message.bytesLoaded = event.bytesLoaded;
             if( event.bytesTotal ) message.bytesTotal = event.bytesTotal;
 			if( event.bytesTotal && event.bytesLoaded ) message.percent = Number( Number( event.bytesLoaded / event.bytesTotal * 100 ).toPrecision( 4 ) );
-            Load.processMessage( loader , message );
+            Load.processMessage( urlLoader , message );
 		 }
 
-        private static function loadDataSecurityError(event:SecurityErrorEvent):void {
-            var loader:URLLoader = URLLoader( event.target );
+        private static function loadDataSecurityError( event:SecurityErrorEvent ):void {
+            var urlLoader:URLLoader = URLLoader( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.FAIL );
-            message.loader = loader;
+            message.loader = urlLoader;
 			message.error = event.text;
-            if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status;
-			Load.processMessage( loader , message );
+            if( Load.requests[ urlLoader ].status ) message.status = Load.requests[ urlLoader ].status;
+			Load.processMessage( urlLoader , message );
+            Load.loadDataClose( event );
         }
 
-        private static function loadDataHttpStatus(event:HTTPStatusEvent):void {
-            var loader:URLLoader = URLLoader( event.target );
+        private static function loadDataHttpStatus( event:HTTPStatusEvent ):void {
+            var urlLoader:URLLoader = URLLoader( event.target );
             //write status into requestobj
-            Load.requests[ loader ].status = event.status;
+            Load.requests[ urlLoader ].status = event.status;
         }
 
-        private static function loadDataIoError(event:IOErrorEvent):void {
-            var loader:URLLoader = URLLoader( event.target );
+        private static function loadDataIoError( event:IOErrorEvent ):void {
+            var urlLoader:URLLoader = URLLoader( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.FAIL );
             message.error = event.text;
-			message.loader = loader;
-            if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status;
-            Load.processMessage( loader , message );
+			message.loader = urlLoader;
+            if( Load.requests[ urlLoader ].status ) message.status = Load.requests[ urlLoader ].status;
+            Load.processMessage( urlLoader , message );
+            Load.loadDataClose( event );
         }
 		
 		
@@ -417,93 +442,113 @@ package f.net
 		private static function loadStream( url:String , callback:Function , parameters:Object=null ):void
 		{
 			Load.init();
-			var loader:URLStream = new URLStream();
+			var urlStream:URLStream = new URLStream();
             
             //configure listeners
-            loader.addEventListener( Event.COMPLETE , Load.loadStreamComplete );
-            loader.addEventListener( Event.OPEN , Load.loadStreamOpen );
-            loader.addEventListener( ProgressEvent.PROGRESS , Load.loadStreamProgress );
-            loader.addEventListener( SecurityErrorEvent.SECURITY_ERROR , Load.loadStreamSecurityError );
-            loader.addEventListener( HTTPStatusEvent.HTTP_STATUS , Load.loadStreamHttpStatus );
-            loader.addEventListener( IOErrorEvent.IO_ERROR , Load.loadStreamIoError );
+            urlStream.addEventListener( Event.COMPLETE , Load.loadStreamComplete );
+            urlStream.addEventListener( Event.OPEN , Load.loadStreamOpen );
+            urlStream.addEventListener( ProgressEvent.PROGRESS , Load.loadStreamProgress );
+            urlStream.addEventListener( SecurityErrorEvent.SECURITY_ERROR , Load.loadStreamSecurityError );
+            urlStream.addEventListener( HTTPStatusEvent.HTTP_STATUS , Load.loadStreamHttpStatus );
+            urlStream.addEventListener( IOErrorEvent.IO_ERROR , Load.loadStreamIoError );
             
             //store request
-            Load.requests[ loader ] = prepareRequest( url, callback, parameters );
+            Load.requests[ urlStream ] = prepareRequest( url, callback, parameters );
+            
+            //store loader
+            Load.requests[ urlStream ].loader = urlStream;
             
             try {
-                loader.load( Load.requests[ loader ].request );
+                urlStream.load( Load.requests[ urlStream ].request );
             } catch ( error:Error ) {
                 trace("Unable to load requested document.");
             }
 		}
+		
+		private static function loadStreamClean( urlStream:URLStream ):void
+		{
+			//clean up
+			delete Load.requests[ urlStream ].callback;
+			delete Load.requests[ urlStream ].loader;
+			delete Load.requests[ urlStream ];
+			
+            urlStream.removeEventListener( Event.COMPLETE , loadStreamComplete );
+            urlStream.removeEventListener( Event.OPEN , loadStreamOpen );
+            urlStream.removeEventListener( ProgressEvent.PROGRESS , loadStreamProgress );
+            urlStream.removeEventListener( SecurityErrorEvent.SECURITY_ERROR , loadStreamSecurityError );
+            urlStream.removeEventListener( HTTPStatusEvent.HTTP_STATUS , loadStreamHttpStatus );
+            urlStream.removeEventListener( IOErrorEvent.IO_ERROR , loadStreamIoError );
+		}
 
         private static function loadStreamComplete(event:Event):void {
-            var loader:URLStream = URLStream( event.target );
+            var urlStream:URLStream = URLStream( event.target );
             var bytesOut:ByteArray = new ByteArray();
-            loader.readBytes( bytesOut );
+            urlStream.readBytes( bytesOut );
  			var message:LoadEvent = new LoadEvent( LoadEvent.SUCCESS );
-            message.loader = loader;
-            if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
-			if( Load.requests[ loader ].resultFormat == Load.AMF ){
+            message.loader = urlStream;
+            if( Load.requests[ urlStream ].status ) message.status = Load.requests[ urlStream ].status
+			if( Load.requests[ urlStream ].resultFormat == Load.AMF ){
 				message.data = bytesOut.readObject();
 			}else{
 				message.data = bytesOut;
         	}
-			Load.processMessage( loader , message );
+			Load.processMessage( urlStream , message );
 			
-			//clean up
-			delete Load.requests[ loader ].callback;
-			delete Load.requests[ loader ];
-			
-            loader.removeEventListener( Event.COMPLETE , loadDataComplete );
-            loader.removeEventListener( Event.OPEN , loadDataOpen );
-            loader.removeEventListener( ProgressEvent.PROGRESS , loadDataProgress );
-            loader.removeEventListener( SecurityErrorEvent.SECURITY_ERROR , loadDataSecurityError );
-            loader.removeEventListener( HTTPStatusEvent.HTTP_STATUS , loadDataHttpStatus );
-            loader.removeEventListener( IOErrorEvent.IO_ERROR , loadDataIoError );
+            //chain complete to close events
+            Load.loadStreamClose( event );
 		}
 
+        private static function loadStreamClose( event:Event ):void {
+            var urlStream:URLStream = URLStream( event.target );
+            var message:LoadEvent = new LoadEvent( LoadEvent.CLOSE );
+            message.loader = urlStream;
+			Load.processMessage( urlStream , message );
+			Load.loadStreamClean( urlStream );
+        }
+        
         private static function loadStreamOpen( event:Event ):void {
-            var loader:URLStream = URLStream( event.target );
+            var urlStream:URLStream = URLStream( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.OPEN );
-            message.loader = loader;
-			Load.processMessage( loader , message );
+            message.loader = urlStream;
+			Load.processMessage( urlStream , message );
         }
 
         private static function loadStreamProgress( event:ProgressEvent ):void {
-            var loader:URLStream = URLStream( event.target );
+            var urlStream:URLStream = URLStream( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.PROGRESS );
-            message.loader = loader;
-            message.bytesAvailable = loader.bytesAvailable;
+            message.loader = urlStream;
+            message.bytesAvailable = urlStream.bytesAvailable;
             if( event.bytesLoaded ) message.bytesLoaded = event.bytesLoaded;
             if( event.bytesTotal ) message.bytesTotal = event.bytesTotal;
 			if( event.bytesTotal && event.bytesLoaded ) message.percent = Number( Number( event.bytesLoaded / event.bytesTotal * 100 ).toPrecision( 4 ) );
-            Load.processMessage( loader , message );
+            Load.processMessage( urlStream , message );
 		 }
 
         private static function loadStreamSecurityError( event:SecurityErrorEvent ):void {
-            var loader:URLStream = URLStream( event.target );
+            var urlStream:URLStream = URLStream( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.FAIL );
             message.error = event.text;
-            if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
-			message.loader = loader;
+            if( Load.requests[ urlStream ].status ) message.status = Load.requests[ urlStream ].status
+			message.loader = urlStream;
             message.error = event.text;
-			Load.processMessage( loader , message );
+			Load.processMessage( urlStream , message );
+            Load.loadStreamClose( event );
         }
 
         private static function loadStreamHttpStatus( event:HTTPStatusEvent ):void {
-           var loader:URLStream = URLStream( event.target );
+           var urlStream:URLStream = URLStream( event.target );
             //write status into requestobj
-            Load.requests[ loader ].status = event.status;
+            Load.requests[ urlStream ].status = event.status;
         }
 
         private static function loadStreamIoError( event:IOErrorEvent ):void {
-            var loader:URLStream = URLStream( event.target );
+            var urlStream:URLStream = URLStream( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.FAIL );
             message.error = event.text;
-            if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
-			message.loader = loader;
-           	Load.processMessage( loader , message );
+            if( Load.requests[ urlStream ].status ) message.status = Load.requests[ urlStream ].status
+			message.loader = urlStream;
+           	Load.processMessage( urlStream , message );
+            Load.loadStreamClose( event );
         }
 		
 		
@@ -529,15 +574,32 @@ package f.net
             loader.contentLoaderInfo.addEventListener( Event.INIT , Load.loadMovieInit );
             
            	//store request
-            parameters = Load.requests[ loader.contentLoaderInfo ] = prepareRequest( url, callback, parameters );
-            parameters.contentLoaderInfo = loader.contentLoaderInfo;
-            parameters.loader = loader;
+            Load.requests[ loader.contentLoaderInfo ] = prepareRequest( url, callback, parameters );
+            
+            //store loader
+            Load.requests[ loader.contentLoaderInfo ].loader = loader;
             
             try {
-                loader.load( parameters.request );
+                loader.load( Load.requests[ loader.contentLoaderInfo ].request );
             } catch ( error:Error ) {
                 trace("Unable to load requested document.");
             }
+		}
+		
+		private static function loadMovieClean( loaderInfo:LoaderInfo ):void
+		{
+			//clean up
+			delete Load.requests[ loaderInfo ].callback;
+			delete Load.requests[ loaderInfo ].loader
+			delete Load.requests[ loaderInfo ];
+			
+			loaderInfo.removeEventListener( Event.COMPLETE , Load.loadMovieComplete );
+            loaderInfo.removeEventListener( Event.OPEN , Load.loadMovieOpen );
+            loaderInfo.removeEventListener( Event.INIT , Load.loadMovieInit );
+            loaderInfo.removeEventListener( ProgressEvent.PROGRESS , Load.loadMovieProgress );
+            loaderInfo.removeEventListener( SecurityErrorEvent.SECURITY_ERROR , Load.loadMovieSecurityError );
+            loaderInfo.removeEventListener( HTTPStatusEvent.HTTP_STATUS , Load.loadMovieHttpStatus );
+            loaderInfo.removeEventListener( IOErrorEvent.IO_ERROR , Load.loadMovieIoError );
 		}
 		
 		//MOVIE EVENTS
@@ -548,65 +610,64 @@ package f.net
 			message.data = loaderInfo.loader as Loader;
             if( Load.requests[ loaderInfo ].status ) message.status = Load.requests[ loaderInfo ].status
 			Load.processMessage( loaderInfo , message );
-			
-			//clean up
-			delete Load.requests[ loaderInfo ].callback;
-			delete Load.requests[ loaderInfo ];
-			
-            loaderInfo.removeEventListener( Event.COMPLETE , Load.loadMovieComplete );
-            loaderInfo.removeEventListener( Event.OPEN , Load.loadMovieOpen );
-            loaderInfo.removeEventListener( Event.INIT , Load.loadMovieInit );
-            loaderInfo.removeEventListener( ProgressEvent.PROGRESS , Load.loadMovieProgress );
-            loaderInfo.removeEventListener( SecurityErrorEvent.SECURITY_ERROR , Load.loadMovieSecurityError );
-            loaderInfo.removeEventListener( HTTPStatusEvent.HTTP_STATUS , Load.loadMovieHttpStatus );
-            loaderInfo.removeEventListener( IOErrorEvent.IO_ERROR , Load.loadMovieIoError );
+			loadMovieClose( event );
 		}
 		
+		private static function loadMovieClose( event:Event ):void {
+            var loaderInfo:LoaderInfo = LoaderInfo( event.target );
+            var message:LoadEvent = new LoadEvent( LoadEvent.CLOSE );
+			message.loader = loaderInfo;
+            Load.processMessage( loaderInfo , message );
+			Load.loadMovieClean( loaderInfo );
+        }
+        
 		private static function loadMovieOpen( event:Event ):void {
-            var loader:LoaderInfo = LoaderInfo( event.target );
+            var loaderInfo:LoaderInfo = LoaderInfo( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.OPEN );
-			message.loader = loader;
-            Load.processMessage( loader , message );
+			message.loader = loaderInfo;
+            Load.processMessage( loaderInfo , message );
         }
         
         private static function loadMovieInit(event:Event):void {
-            var loader:LoaderInfo = LoaderInfo( event.target );
+            var loaderInfo:LoaderInfo = LoaderInfo( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.INIT );
-			message.loader = loader;
-			Load.processMessage( loader , message );
+			message.loader = loaderInfo;
+			Load.processMessage( loaderInfo , message );
         }
 
         private static function loadMovieProgress( event:ProgressEvent ):void {
-            var loader:LoaderInfo = LoaderInfo( event.target );
+            var loaderInfo:LoaderInfo = LoaderInfo( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.PROGRESS );
-			message.loader = loader;
+			message.loader = loaderInfo;
 			if( event.bytesLoaded ) message.bytesLoaded = event.bytesLoaded;
             if( event.bytesTotal ) message.bytesTotal = event.bytesTotal;
 			if( event.bytesTotal && event.bytesLoaded ) message.percent = Number( Number( event.bytesLoaded / event.bytesTotal * 100 ).toPrecision( 4 ) );
-            Load.processMessage( loader , message );
+            Load.processMessage( loaderInfo , message );
 		}
 
         private static function loadMovieSecurityError( event:SecurityErrorEvent ):void {
-            var  loader:LoaderInfo = LoaderInfo( event.target );
+            var  loaderInfo:LoaderInfo = LoaderInfo( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.FAIL );
             message.error = event.text;
-			message.loader = loader;
-			if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
-			Load.processMessage( loader , message );
+			message.loader = loaderInfo;
+			if( Load.requests[ loaderInfo ].status ) message.status = Load.requests[ loaderInfo ].status
+			Load.processMessage( loaderInfo , message );
+			loadMovieClose( event );
         }
 
         private static function loadMovieHttpStatus( event:HTTPStatusEvent ):void {
-            var loader:LoaderInfo = LoaderInfo( event.target );
-            Load.requests[ loader ].status = event.status;
+            var loaderInfo:LoaderInfo = LoaderInfo( event.target );
+            Load.requests[ loaderInfo ].status = event.status;
         }
 
         private static function loadMovieIoError( event:IOErrorEvent ):void {
-            var loader:LoaderInfo = LoaderInfo( event.target );
+            var loaderInfo:LoaderInfo = LoaderInfo( event.target );
             var message:LoadEvent = new LoadEvent( LoadEvent.FAIL );
             message.error = event.text;
-			message.loader = loader;
-			if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
-			Load.processMessage( loader , message );
+			message.loader = loaderInfo;
+			if( Load.requests[ loaderInfo ].status ) message.status = Load.requests[ loaderInfo ].status
+			Load.processMessage( loaderInfo , message );
+			loadMovieClose( event );
         }
         
         

@@ -24,8 +24,17 @@ package f.tests
 				Test.pass( this );
 				
 			}else if( event.type == LoadEvent.PROGRESS ){
-				trace( ' < PROGRESS: ' + event.percent );	
+				//trace( ' < PROGRESS: ' + event.percent );	
 			
+			}else if ( event.type == LoadEvent.OPEN ){
+				trace( ' < OPEN: ' );	
+			
+			}else if ( event.type == LoadEvent.CLOSE ){
+				trace( ' < CLOSE: ' );
+				
+			}else if ( event.type == LoadEvent.INIT ){
+				trace( ' < INIT: ' );
+				
 			}else if( event.type == LoadEvent.FAIL ){
 				Test.fail( this , event.error );
 			}	

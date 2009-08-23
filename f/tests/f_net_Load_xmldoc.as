@@ -17,12 +17,25 @@ package f.tests
 		public function loadXML( event:LoadEvent ):void
 		{
 			if( event.type == LoadEvent.SUCCESS ){
-				trace( ' < COMPLETE: ' + XMLDocument(event.data).toString() );
-				Test.pass( this );
+				if( XMLDocument( event.data ).docTypeDecl == '<!DOCTYPE PLAY SYSTEM "play.dtd">' ){
+					trace( ' < SUCCESS' );
+					Test.pass( this );
+				}else{
+					Test.fail( this , 'INVALID DATA TEST' );
+				}
 				
 			}else if( event.type == LoadEvent.PROGRESS ){
-				trace( ' < PROGRESS: ' + event.percent );	
+				//trace( ' < PROGRESS: ' + event.percent );	
 			
+			}else if ( event.type == LoadEvent.OPEN ){
+				trace( ' < OPEN: ' );	
+			
+			}else if ( event.type == LoadEvent.CLOSE ){
+				trace( ' < CLOSE: ' );
+				
+			}else if ( event.type == LoadEvent.INIT ){
+				trace( ' < INIT: ' );
+				
 			}else if( event.type == LoadEvent.FAIL ){
 				Test.fail( this , event.error );
 			}

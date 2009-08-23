@@ -29,6 +29,7 @@ package
 			addChild( new f_net_Load_text_instance() );
 			addChild( new f_net_Load_xmldoc() );
 			addChild( new f_net_Load_xmldoc_instance() );
+			
 		}
 	}
 }

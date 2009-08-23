@@ -16,12 +16,25 @@ package f.tests
 		public function loadText( event:LoadEvent ):void
 		{
 			if( event.type == LoadEvent.SUCCESS ){
-				trace( ' < COMPLETE: ' + event.data );
-				Test.pass( this );			
+				if( event.data.split( ' ')[0] == 'Lorem' ){
+					trace( ' < SUCCESS' );			
+					Test.pass( this );
+				}else{
+					Test.fail( this , 'INVALID DATA TEST' );
+				}
 			
 			}else if( event.type == LoadEvent.PROGRESS ){
-				trace( ' < PROGRESS: ' + event.percent );	
+				//trace( ' < PROGRESS: ' + event.percent );	
 			
+			}else if ( event.type == LoadEvent.OPEN ){
+				trace( ' < OPEN: ' );	
+			
+			}else if ( event.type == LoadEvent.CLOSE ){
+				trace( ' < CLOSE: ' );
+				
+			}else if ( event.type == LoadEvent.INIT ){
+				trace( ' < INIT: ' );
+				
 			}else if( event.type == LoadEvent.FAIL ){
 				Test.fail( this , event.error );
 			}

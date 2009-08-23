@@ -15,6 +15,9 @@ package f.tests
 			ld.url = "http://onflex.org/f/Load/test.swf";
 			ld.parameters = { method:'post', data:{ a:12345 }};
 			ld.resultFormat = Load.SWF;
+			ld.addEventListener( LoadEvent.OPEN , loadOpen );
+			ld.addEventListener( LoadEvent.CLOSE , loadClose );
+			ld.addEventListener( LoadEvent.INIT , loadInit );
 			ld.addEventListener( LoadEvent.SUCCESS , loadSuccess );
 			ld.addEventListener( LoadEvent.PROGRESS , loadProgress );
 			ld.addEventListener( LoadEvent.FAIL , loadFail );
@@ -31,7 +34,22 @@ package f.tests
 		
 		public function loadProgress( event:LoadEvent ):void
 		{
-			trace( ' < PROGRESS: ' + event.percent );	
+			//trace( ' < PROGRESS: ' + event.percent );	
+		}
+		
+		public function loadOpen( event:LoadEvent ):void
+		{
+			trace( ' < OPEN: ' );	
+		}
+		
+		public function loadClose( event:LoadEvent ):void
+		{
+			trace( ' < CLOSE: ' );	
+		}
+		
+		public function loadInit( event:LoadEvent ):void
+		{
+			trace( ' < INIT: ' );	
 		}
 		
 		public function loadFail( event:LoadEvent ):void
