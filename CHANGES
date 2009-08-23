@@ -1,6 +1,9 @@
  BUILD 34
  	- Added f.tests.Test class for simplified test cases and reporting;
  	- Added Test support to all tests
+ 	- Added f.net.Load.amf - Load AMF binary directly
+ 	- Added f.net.Load.AMF const
+ 	- Added f.net.Load support for Load.AMF resultFormat
 
  BUILD 33
  	- Added instance support f.net.Load! new Load();
