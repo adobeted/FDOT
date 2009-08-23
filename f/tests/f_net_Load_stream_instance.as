@@ -10,6 +10,7 @@ package f.tests
 	{
 		public function f_net_Load_stream_instance()
 		{	
+			Test.register( this );
 			var ld:Load = new Load();
 			ld.url = "http://onflex.org/f/Load/test.png";
 			ld.parameters = { method:'post', data:{ a:12345 }};
@@ -20,20 +21,23 @@ package f.tests
 			ld.load();
 		}
 		
-		public function loadProgress( event:LoadEvent ):void
-		{
-			trace( ' < loadMovie PROGRESS: ' + event.percent );	
-		}
 		public function loadSuccess( event:LoadEvent ):void
 		{
-			trace( ' < loadMovie SUCCESS: ' );
+			trace( ' < SUCCESS: ' );
 			var ld:Loader = new Loader();
-			ld..loadBytes( event.data );
+			ld.loadBytes( event.data );
 			addChild( ld );
+			Test.pass( this );
 		}
+
+		public function loadProgress( event:LoadEvent ):void
+		{
+			trace( ' < PROGRESS: ' + event.percent );	
+		}
+
 		public function loadFail( event:LoadEvent ):void
 		{
-			throw new Error( 'FAIL-FAIL-FAIL' + event.status );
+			Test.fail( this , event.error );
 		}
 	}
 }

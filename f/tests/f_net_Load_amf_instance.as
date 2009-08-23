@@ -1,19 +1,19 @@
 package f.tests
 {
-	import f.net.Load;
 	import f.events.LoadEvent;
-	
+	import f.net.Load;
+	import flash.display.Loader;
 	import flash.display.Sprite;
 
-	public class f_net_Load_querystring_instance extends Sprite
+	public class f_net_Load_amf_instance extends Sprite
 	{
-		public function f_net_Load_querystring_instance()
+		public function f_net_Load_amf_instance()
 		{	
 			Test.register( this );
 			var ld:Load = new Load();
-			ld.url = "http://onflex.org/f/Load/test.query";
+			ld.url = "http://onflex.org/f/Load/test.amf";
 			ld.parameters = { method:'post', data:{ a:12345 }};
-			ld.resultFormat = Load.QUERYSTRING;
+			ld.resultFormat = Load.AMF;
 			ld.addEventListener( LoadEvent.SUCCESS , loadSuccess );
 			ld.addEventListener( LoadEvent.PROGRESS , loadProgress );
 			ld.addEventListener( LoadEvent.FAIL , loadFail );
@@ -22,7 +22,7 @@ package f.tests
 		
 		public function loadSuccess( event:LoadEvent ):void
 		{
-			trace( ' < SUCCESS: ' + event.data );
+			trace( ' < SUCCESS: ' + event.data.fname );
 			Test.pass( this );
 		}
 
@@ -30,7 +30,7 @@ package f.tests
 		{
 			trace( ' < PROGRESS: ' + event.percent );	
 		}
-
+				
 		public function loadFail( event:LoadEvent ):void
 		{
 			Test.fail( this , event.error );

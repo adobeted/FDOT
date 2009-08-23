@@ -10,25 +10,25 @@ package f.tests
 	{
 		public function f_net_Load_binary():void
 		{
+			Test.register( this );
 			Load.binary( 'http://onflex.org/f/Load/test.png' , this.loadBinary , { method:'post', data:{ a:12345 } } );
 		}
 		
 		public function loadBinary( event:LoadEvent ):void
 		{
 			if( event.type == LoadEvent.SUCCESS ){
-				trace( ' < loadMovie SUCCESS: ' );
+				trace( ' < SUCCESS: ' );
 				var ld:Loader = new Loader()
-					ld.loadBytes( event.data );
+				ld.loadBytes( event.data );
 				this.addChild( ld );
+				Test.pass( this );
 				
 			}else if( event.type == LoadEvent.PROGRESS ){
-				trace( ' < loadMovie PROGRESS: ' + event.percent );	
+				trace( ' < PROGRESS: ' + event.percent );	
 			
 			}else if( event.type == LoadEvent.FAIL ){
-				throw new Error( 'FAIL-FAIL-FAIL' + event.status );
-			}
-			
+				Test.fail( this , event.error );
+			}	
 		}
-		
 	}
 }

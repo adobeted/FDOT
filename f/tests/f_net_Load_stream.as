@@ -11,23 +11,25 @@ package f.tests
 	{
 		public function f_net_Load_stream():void
 		{
+			Test.register( this );
 			Load.stream( 'http://onflex.org/f/Load/test.png' , loadStream , { method:'post', data:{ a:12345 } } );
 		}
 		
 		public function loadStream( event:LoadEvent ):void
 		{
 			if( event.type == LoadEvent.SUCCESS ){
-				trace( ' < Load.stream COMPLETE: ' );
+				trace( ' < COMPLETE: ' );
 				var load:Loader = new Loader()
 				load.loadBytes( event.data );
 				addChild( load );
+				Test.pass( this );
 				
 			}else if( event.type == LoadEvent.PROGRESS ){
-				trace( ' < Load.stream PROGRESS: ' + event.percent );	
+				trace( ' < PROGRESS: ' + event.percent );	
 				trace( event.bytesAvailable );
 			
 			}else if( event.type == LoadEvent.FAIL ){
-				throw new Error( 'FAIL-FAIL-FAIL' + event.status );
+				Test.fail( this , event.error );
 			}
 		}
 		

@@ -10,21 +10,22 @@ package f.tests
 	{
 		public function f_net_Load_xmldoc():void
 		{
+			Test.register( this );
 			Load.xmldoc( 'http://onflex.org/f/Load/test.xml' , loadXML , { method:'post', data:{ a:12345 } } );
 		}
 		
 		public function loadXML( event:LoadEvent ):void
 		{
 			if( event.type == LoadEvent.SUCCESS ){
-				trace( ' < loadMovie COMPLETE: ' + XMLDocument(event.data).toString() );
+				trace( ' < COMPLETE: ' + XMLDocument(event.data).toString() );
+				Test.pass( this );
 				
 			}else if( event.type == LoadEvent.PROGRESS ){
-				trace( ' < loadMovie PROGRESS: ' + event.percent );	
+				trace( ' < PROGRESS: ' + event.percent );	
 			
 			}else if( event.type == LoadEvent.FAIL ){
-				throw new Error( 'FAIL-FAIL-FAIL' + event.status );
+				Test.fail( this , event.error );
 			}
 		}
-		
 	}
 }

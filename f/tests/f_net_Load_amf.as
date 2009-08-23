@@ -2,22 +2,21 @@ package f.tests
 {
 	import f.events.LoadEvent;
 	import f.net.Load;
-	
+	import flash.display.Loader;
 	import flash.display.Sprite;
 
-	public class f_net_Load_swf extends Sprite
+	public class f_net_Load_amf extends Sprite
 	{
-		public function f_net_Load_swf()
+		public function f_net_Load_amf():void
 		{
 			Test.register( this );
-			Load.swf( 'http://onflex.org/f/Load/test.swf' , this.loadSwf , { method:'post', data:{ a:12345 } } );
+			Load.amf( 'http://onflex.org/f/Load/test.amf' , this.loadBinary , { method:'post', data:{ a:12345 } } );
 		}
 		
-		public function loadSwf( event:LoadEvent ):void
+		public function loadBinary( event:LoadEvent ):void
 		{
 			if( event.type == LoadEvent.SUCCESS ){
-				trace( ' < SUCCESS: ' );
-				this.addChild( event.data );
+				trace( ' < SUCCESS: ' + event.data.fname );
 				Test.pass( this );
 				
 			}else if( event.type == LoadEvent.PROGRESS ){
@@ -26,6 +25,8 @@ package f.tests
 			}else if( event.type == LoadEvent.FAIL ){
 				Test.fail( this , event.error );
 			}
+			
 		}
+		
 	}
 }

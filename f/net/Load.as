@@ -43,6 +43,9 @@
 //		//load binary
 // 		Load.binary( 'http://onflex.org/f/Load/test.png' );
 //
+//		//load amf
+// 		Load.amf( 'http://onflex.org/f/Load/test.amf' );
+//
 //		//load stream
 // 		Load.stream( 'http://onflex.org/f/Load/test.png' );
 //
@@ -92,6 +95,7 @@ package f.net
 	public class Load extends EventDispatcher
 	{
 		
+		public static const AMF:String = "f.net.Load.AMF";
 		public static const BINARY:String = "f.net.Load.BINARY";
 		public static const E4X:String = "f.net.Load.E4X";		
 		public static const JSON:String = "f.net.Load.JSON";
@@ -112,6 +116,10 @@ package f.net
 			if( url == null) return;
 			switch ( this.resultFormat ){
 				
+				case Load.AMF:
+					Load.amf( this.url , this.eventCallback , this.parameters );
+					break;
+					
 				case Load.BINARY:
 					Load.binary( this.url , this.eventCallback , this.parameters );
 					break;
@@ -237,6 +245,13 @@ package f.net
 		{
 			if( parameters == null ) parameters = {};
 			parameters.resultFormat = Load.BINARY;
+			Load.loadStream( url , callback , parameters );		
+		}
+		
+		public static function amf( url:String , callback:Function , parameters:Object=null ):void
+		{
+			if( parameters == null ) parameters = {};
+			parameters.resultFormat = Load.AMF;
 			Load.loadStream( url , callback , parameters );		
 		}
 		
@@ -429,7 +444,11 @@ package f.net
  			var message:LoadEvent = new LoadEvent( LoadEvent.SUCCESS );
             message.loader = loader;
             if( Load.requests[ loader ].status ) message.status = Load.requests[ loader ].status
-			message.data = bytesOut;
+			if( Load.requests[ loader ].resultFormat == Load.AMF ){
+				message.data = bytesOut.readObject();
+			}else{
+				message.data = bytesOut;
+        	}
 			Load.processMessage( loader , message );
 			
 			//clean up

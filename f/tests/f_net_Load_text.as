@@ -9,19 +9,21 @@ package f.tests
 	{
 		public function f_net_Load_text():void
 		{
+			Test.register( this );
 			Load.text( 'http://onflex.org/f/Load/test.txt' , this.loadText , { method:'post', data:{ a:12345 } } );
 		}
 		
 		public function loadText( event:LoadEvent ):void
 		{
 			if( event.type == LoadEvent.SUCCESS ){
-				trace( ' < loadMovie COMPLETE: ' + event.data );			
+				trace( ' < COMPLETE: ' + event.data );
+				Test.pass( this );			
 			
 			}else if( event.type == LoadEvent.PROGRESS ){
-				trace( ' < loadMovie PROGRESS: ' + event.percent );	
+				trace( ' < PROGRESS: ' + event.percent );	
 			
 			}else if( event.type == LoadEvent.FAIL ){
-				throw new Error( 'FAIL-FAIL-FAIL' + event.status );
+				Test.fail( this , event.error );
 			}
 		}
 		

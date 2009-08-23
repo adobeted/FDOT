@@ -9,6 +9,7 @@ package f.tests
 	{
 		public function f_net_Load_text_instance()
 		{	
+			Test.register( this );
 			var ld:Load = new Load();
 			ld.url = "http://onflex.org/f/Load/test.txt";
 			ld.parameters = { method:'post', data:{ a:12345 }};
@@ -19,17 +20,20 @@ package f.tests
 			ld.load();
 		}
 		
-		public function loadProgress( event:LoadEvent ):void
-		{
-			trace( ' < loadMovie PROGRESS: ' + event.percent );	
-		}
 		public function loadSuccess( event:LoadEvent ):void
 		{
-			trace( ' < loadMovie SUCCESS: ' + event.data );	
+			trace( ' < SUCCESS: ' + event.data );
+			Test.pass( this );
 		}
+		
+		public function loadProgress( event:LoadEvent ):void
+		{
+			trace( ' < PROGRESS: ' + event.percent );	
+		}
+		
 		public function loadFail( event:LoadEvent ):void
 		{
-			throw new Error( 'FAIL-FAIL-FAIL' + event.status );
+			Test.fail( this , event.error );
 		}
 	}
 }

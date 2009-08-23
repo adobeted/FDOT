@@ -9,6 +9,8 @@ package f.tests
 	{
 		public function f_net_Message()
 		{
+			Test.register( this );
+			
 			var start:int = getTimer();
 			
 			Message.add( this.simple , 'foo.boo.goo.doo' );
@@ -23,6 +25,8 @@ package f.tests
 			Message.send( { foo:"bar" } , 'hard' );
 			Message.send( { foo:"bar" } , 'simple' );
 			trace( getTimer() - start);
+			
+			Test.pass( this );
 		}
 		
 		public function simple( e:Object ):void{ trace('simple'); }

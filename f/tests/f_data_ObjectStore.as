@@ -8,6 +8,8 @@ package f.tests
 	{
 		public function f_data_ObjectStore()
 		{
+			Test.register( this );
+			
 			var os:ObjectStore = new ObjectStore();
 			//path creation is auto
 			//set properties
@@ -36,8 +38,8 @@ package f.tests
 			trace( os.remove( 'root.ted.age' ) );
 			trace( os.exists( 'root.ted.age' ) );
 			
+			Test.pass( this );
 			
 		}
-		
 	}
 }

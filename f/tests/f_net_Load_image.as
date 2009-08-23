@@ -8,20 +8,22 @@ package f.tests
 	{
 		public function f_net_Load_image():void
 		{
+			Test.register( this );
 			Load.image( 'http://onflex.org/f/Load/test.png' , this.loadImage , { method:'post', data:{ a:12345 } } );
 		}
 		
 		public function loadImage( event:LoadEvent ):void
 		{
 			if( event.type == LoadEvent.SUCCESS ){
-				trace( ' < loadMovie SUCCESS: ' );
+				trace( ' < SUCCESS: ' );
 				this.addChild( event.data );
+				Test.pass( this );
 				
 			}else if( event.type == LoadEvent.PROGRESS ){
-				trace( ' < loadMovie PROGRESS: ' + event.percent );	
+				trace( ' < PROGRESS: ' + event.percent );	
 			
 			}else if( event.type == LoadEvent.FAIL ){
-				throw new Error( 'FAIL-FAIL-FAIL' + event.status );
+				Test.fail( this , event.error );
 			}
 		}
 		

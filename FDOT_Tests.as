@@ -9,6 +9,8 @@ package
 		public function FDOT_Tests()
 		{
 			addChild( new f_data_ObjectStore() );
+			addChild( new f_net_Load_amf() );
+			addChild( new f_net_Load_amf_instance() );
 			addChild( new f_net_Load_binary() );
 			addChild( new f_net_Load_binary_instance() );
 			addChild( new f_net_Load_e4x() );
@@ -28,6 +30,5 @@ package
 			addChild( new f_net_Load_xmldoc() );
 			addChild( new f_net_Load_xmldoc_instance() );
 		}
-		
 	}
 }
